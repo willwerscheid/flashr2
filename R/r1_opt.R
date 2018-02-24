@@ -1,5 +1,5 @@
 #' @title r1_opt
-#' @description Optimize a single loading and factor ("rank 1" model)
+#' @description Optimize a single loading and factor ('rank 1' model)
 #' @details This function iteratively optimizes the loading, factor and residual precision, from residuals and their expected squared values
 #' Currently the tolerance is on the changes in l and f (not on the objective function)
 #' @param R an n times p matrix of data (expected residuals)
@@ -107,59 +107,71 @@ r1_opt = function(R,R2,l_init,f_init,l2_init = NULL, f2_init = NULL, l_subset = 
         warning("An iteration decreased the objective. This happens occassionally, perhaps due to numeric reasons.
 You could ignore this warning, but you might like to check out
 https://github.com/stephenslab/flashr/issues/26 for more details.")
-      }
-      F_obj = Fnew
-    } else { # check convergence by percentage changes in l and f
-      #normalize l and f so that f has unit norm
-      # note that this messes up stored log-likelihoods etc... so not recommended
-      warning("renormalization step not fully tested; be careful!")
-      norm = sqrt(sum(f^2))
-      f = f/norm
-      f2 = f2/(norm^2)
-      l = l*norm
-      l2 = l2*(norm^2)
-
-      all_diff = abs(c(l,f)/c(l_old,f_old) - 1)
-      if (all(is.nan(all_diff))) { # all old and new entries of l and f are zero
-        diff = 0
-      } else { # ignore entries where both old and new values are zero:
-        diff = max(all_diff[!is.nan(all_diff)])
-      }
-      if(verbose){
-        message(paste0("diff:",diff))
-      }
+            }
+            F_obj = Fnew
+        } else {
+            # check convergence by percentage changes in l and f normalize l and f so that f has unit norm note that this
+            # messes up stored log-likelihoods etc... so not recommended
+            warning("renormalization step not fully tested; be careful!")
+            norm = sqrt(sum(f^2))
+            f = f/norm
+            f2 = f2/(norm^2)
+            l = l * norm
+            l2 = l2 * (norm^2)
+            
+            all_diff = abs(c(l, f)/c(l_old, f_old) - 1)
+            if (all(is.nan(all_diff))) {
+                # all old and new entries of l and f are zero
+                diff = 0
+            } else {
+                # ignore entries where both old and new values are zero:
+                diff = max(all_diff[!is.nan(all_diff)])
+            }
+            if (verbose) {
+                message(paste0("diff:", diff))
+            }
+        }
     }
-  }
-
-  return(list(l=l, f=f, l2=l2, f2=f2, tau=tau, F_obj=F_obj, KL_l=KL_l, KL_f=KL_f,
-              gl=gl, gf=gf, penloglik_l=penloglik_l, penloglik_f=penloglik_f,
-              ebnm_param=ebnm_param))
+    
+    return(list(l = l, f = f, l2 = l2, f2 = f2, tau = tau, F_obj = F_obj, KL_l = KL_l, KL_f = KL_f, gl = gl, gf = gf, 
+        penloglik_l = penloglik_l, penloglik_f = penloglik_f, ebnm_param = ebnm_param))
 }
 
 # put the results into f
-update_f_from_r1_opt_results = function(f,k,res){
-  f$EL[,k] = res$l
-  f$EF[,k] = res$f
-  f$EL2[,k] = res$l2
-  f$EF2[,k] = res$f2
-  f$tau = res$tau
-
-  f$ebnm_param_f[[k]] = res$ebnm_param
-  f$ebnm_param_l[[k]] = res$ebnm_param
-
-  if (!is.null(res$gf)) {f$gf[[k]] = res$gf}
-  if (!is.null(res$gl)) {f$gl[[k]] = res$gl}
-
-  if (!is.null(res$KL_f)) {f$KL_f[[k]] = res$KL_f}
-  if (!is.null(res$KL_l)) {f$KL_l[[k]] = res$KL_l}
-
-  if (!is.null(res$penloglik_f)) {f$penloglik_f[[k]] = res$penloglik_f}
-  if (!is.null(res$penloglik_l)) {f$penloglik_l[[k]] = res$penloglik_l}
-  return(f)
+update_f_from_r1_opt_results = function(f, k, res) {
+    f$EL[, k] = res$l
+    f$EF[, k] = res$f
+    f$EL2[, k] = res$l2
+    f$EF2[, k] = res$f2
+    f$tau = res$tau
+    
+    f$ebnm_param_f[[k]] = res$ebnm_param
+    f$ebnm_param_l[[k]] = res$ebnm_param
+    
+    if (!is.null(res$gf)) {
+        f$gf[[k]] = res$gf
+    }
+    if (!is.null(res$gl)) {
+        f$gl[[k]] = res$gl
+    }
+    
+    if (!is.null(res$KL_f)) {
+        f$KL_f[[k]] = res$KL_f
+    }
+    if (!is.null(res$KL_l)) {
+        f$KL_l[[k]] = res$KL_l
+    }
+    
+    if (!is.null(res$penloglik_f)) {
+        f$penloglik_f[[k]] = res$penloglik_f
+    }
+    if (!is.null(res$penloglik_l)) {
+        f$penloglik_l[[k]] = res$penloglik_l
+    }
+    return(f)
 }
 
-# compute the expected log-likelihood (at non-missing locations)
-# based on expected squared residuals and tau
-e_loglik_from_R2_and_tau = function(R2,tau,missing){
-  -0.5 * sum(log((2*pi)/tau[!missing]) + tau[!missing] * R2[!missing])
+# compute the expected log-likelihood (at non-missing locations) based on expected squared residuals and tau
+e_loglik_from_R2_and_tau = function(R2, tau, missing) {
+    -0.5 * sum(log((2 * pi)/tau[!missing]) + tau[!missing] * R2[!missing])
 }
