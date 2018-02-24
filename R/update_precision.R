@@ -29,7 +29,8 @@ compute_precision = function(R2,missing,var_type=c("by_column","constant","by_ro
 #' @return n by p matrix of precisions (separate value for each column)
 mle_precision_by_column = function(R2){
   sigma2 = colMeans(R2,na.rm =TRUE) # a p vector
-  tau = round_to_positive(1/sigma2)
+  # if a value of tau becomes numerically negative, set it to a small positive number
+  tau = pmax(1/sigma2, .Machine$double.eps)
   return(outer(rep(1,nrow(R2)), tau)) # an n by p matrix
 }
 
@@ -38,15 +39,7 @@ mle_precision_by_column = function(R2){
 #' @return n by p matrix of precisions (single value for entire matrix)
 mle_precision_constant = function(R2){
   sigma2 = mean(R2,na.rm =TRUE) # a scalar
-  tau = round_to_positive(1/sigma2)
-  return(matrix(tau,nrow=nrow(R2),ncol=ncol(R2))) # an n by p matrix
-}
-
-#' @title  rounds nonnegative and zero values up to (positive) machine precision
-#' @details For numerical reasons, R2 can take (small) negative values. Negative and zero
-#' values for tau cause errors during fitting, so it's necessary to round them up.
-#' @param val a scalar, vector, or matrix with arbitrary entries
-#' @return a scalar, vector, or matrix with positive entries
-round_to_positive = function(val) {
-  pmax(val, .Machine$double.eps)
+  # if a value of tau becomes numerically negative, set it to a small positive number
+  tau = pmax(1/sigma2, .Machine$double.eps)
+  return(matrix(tau, nrow=nrow(R2), ncol=ncol(R2))) # an n by p matrix
 }

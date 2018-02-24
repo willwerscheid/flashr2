@@ -55,36 +55,40 @@ r1_opt = function(R,R2,l_init,f_init,l2_init = NULL, f2_init = NULL, l_subset = 
     l_old = l
     f_old = f
 
-    tau = compute_precision(R2new,missing,var_type)
+    tau = compute_precision(R2new, missing, var_type)
 
     if(length(f_subset)>0){
-      s2 = 1/( t(l2) %*% tau[,f_subset,drop=FALSE])
+      s2 = 1/(t(l2) %*% tau[, f_subset, drop=FALSE])
       if(any(is.finite(s2))){ # check some finite values before proceeding
-        x = (t(l) %*% (R[,f_subset,drop=FALSE]*tau[,f_subset,drop=FALSE])) * s2
-        ebnm_f = ebnm_fn(x,sqrt(s2),ebnm_param)
+        x = (t(l) %*% (R[, f_subset, drop=FALSE]*tau[, f_subset, drop=FALSE])) * s2
+        # if a value of s2 is numerically negative, set it to a small positive number
+        s = sqrt(pmax(s2, .Machine$double.eps))
+        ebnm_f = ebnm_fn(x, s, ebnm_param)
         f[f_subset] = ebnm_f$postmean
         f2[f_subset] = ebnm_f$postmean2
         gf = ebnm_f$fitted_g
         penloglik_f = ebnm_f$penloglik
 
         if(calc_F){
-          KL_f = ebnm_f$penloglik - NM_posterior_e_loglik(x,sqrt(s2),ebnm_f$postmean,ebnm_f$postmean2)
+          KL_f = ebnm_f$penloglik - NM_posterior_e_loglik(x, s, ebnm_f$postmean, ebnm_f$postmean2)
         }
       }
     }
 
-    if(length(l_subset)>0){
+    if(length(l_subset) > 0){
       s2 = 1/(tau[l_subset,,drop=FALSE] %*% f2)
       if(any(is.finite(s2))){ # check some finite values before proceeding
         x = ((R[l_subset,,drop=FALSE]*tau[l_subset,,drop=FALSE]) %*% f) * s2
-        ebnm_l = ebnm_fn(x,sqrt(s2),ebnm_param)
+        # if a value of s2 is numerically negative, set it to a small positive number
+        s = sqrt(pmax(s2, .Machine$double.eps))
+        ebnm_l = ebnm_fn(x, s, ebnm_param)
         l[l_subset] = ebnm_l$postmean
         l2[l_subset] = ebnm_l$postmean2
         gl = ebnm_l$fitted_g
         penloglik_l = ebnm_l$penloglik
 
         if(calc_F){
-          KL_l = ebnm_l$penloglik - NM_posterior_e_loglik(x,sqrt(s2),ebnm_l$postmean,ebnm_l$postmean2)
+          KL_l = ebnm_l$penloglik - NM_posterior_e_loglik(x, s, ebnm_l$postmean, ebnm_l$postmean2)
         }
       }
     }
@@ -93,7 +97,7 @@ r1_opt = function(R,R2,l_init,f_init,l2_init = NULL, f2_init = NULL, l_subset = 
     R2new = R2 - 2*outer(l,f)*R + outer(l2,f2)
 
     if(calc_F){
-      Fnew = KLobj + KL_l + KL_f + e_loglik_from_R2_and_tau(R2new,tau,missing)
+      Fnew = KLobj + KL_l + KL_f + e_loglik_from_R2_and_tau(R2new, tau, missing)
       if(verbose){
         message(paste0("Objective:",Fnew))
       }

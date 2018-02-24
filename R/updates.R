@@ -10,21 +10,24 @@
 flash_update_single_loading = function(data,f,k,ebnm_fn=ebnm_ash,
                                        ebnm_param=flash_default_ebnm_param(ebnm_fn)){
   subset = which(!f$fixl[,k]) # check which elements are not fixed
-  if(length(subset)>0){ # and only do the update if some elements are not fixed
+  if(length(subset) > 0){ # and only do the update if some elements are not fixed
 
     tau = f$tau[subset,,drop=FALSE]
+    if(data$anyNA){tau = tau * !data$missing[subset,]} # set missing values to have precision 0
 
-    if(data$anyNA){tau = tau * !data$missing[subset,]} #set missing values to have precision 0
-    s = sqrt(1/(tau %*% f$EF2[,k]))
-    if(sum(is.finite(s))>0){ # check some finite values before proceeding
-      Rk = get_Rk(data,f,k)[subset,] #residuals excluding factor k
-      x = ((Rk*tau) %*% f$EF[,k]) * s^2
-      a = ebnm_fn(x,s,ebnm_param)
+    s2 = 1/(tau %*% f$EF2[,k])
+    if(sum(is.finite(s2)) > 0){ # check some finite values before proceeding
+      Rk = get_Rk(data, f, k)[subset,] #residuals excluding factor k
+      x = ((Rk*tau) %*% f$EF[,k]) * s2
+      # if a value of s2 becomes numerically negative, set it to a small positive number
+      s = sqrt(pmax(s2, .Machine$double.eps))
+      a = ebnm_fn(x, s, ebnm_param)
+
       f$EL[subset,k] = a$postmean
       f$EL2[subset,k] = a$postmean2
       f$gl[[k]] = a$fitted_g
       f$ebnm_param_l[[k]] = ebnm_param
-      f$KL_l[[k]] = a$penloglik - NM_posterior_e_loglik(x,s,a$postmean,a$postmean2)
+      f$KL_l[[k]] = a$penloglik - NM_posterior_e_loglik(x, s, a$postmean, a$postmean2)
       f$penloglik_l[[k]] = a$penloglik
     }
   }
@@ -38,16 +41,18 @@ flash_update_single_loading = function(data,f,k,ebnm_fn=ebnm_ash,
 #' @return an updated flash object
 flash_update_single_factor = function(data,f,k,ebnm_fn = ebnm_ash, ebnm_param=flash_default_ebnm_param(ebnm_fn)){
   subset = which(!f$fixf[,k]) # check which elements are not fixed
-  if(length(subset)>0){ # and only do the update if some elements are not fixed
+  if(length(subset) > 0){ # and only do the update if some elements are not fixed
 
     tau = f$tau[,subset,drop=FALSE]
-    if(data$anyNA){tau = tau * !data$missing[,subset]} #set missing values to have precision 0
+    if(data$anyNA){tau = tau * !data$missing[,subset]} # set missing values to have precision 0
 
-    s = sqrt(1/(t(tau) %*% f$EL2[,k]))
-    if(sum(is.finite(s))>0){ # check some finite values before proceeding
-      Rk = get_Rk(data,f,k)[,subset] #residuals excluding factor k
-      x = (t(Rk*tau) %*% f$EL[,k]) * s^2
-      a = ebnm_fn(x,s,ebnm_param)
+    s2 = 1/(t(tau) %*% f$EL2[,k])
+    if(sum(is.finite(s2)) > 0){ # check some finite values before proceeding
+      Rk = get_Rk(data, f, k)[,subset] #residuals excluding factor k
+      x = (t(Rk*tau) %*% f$EL[,k]) * s2
+      # if a value of s2 becomes numerically negative, set it to a small positive number
+      s = sqrt(pmax(s2, 0))
+      a = ebnm_fn(x, s, ebnm_param)
 
       f$EF[subset,k] = a$postmean
       f$EF2[subset,k] = a$postmean2
